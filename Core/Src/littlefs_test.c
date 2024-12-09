@@ -56,13 +56,14 @@ const struct lfs_config cfg = {
     .sync  = user_provided_block_device_sync,
 
     // block device configuration
-    .read_size = 256,
-    .prog_size = 256,
+    .read_size = 4096,
+    .prog_size = 4096,
     .block_size = 4096,
     .block_count = 32768,
-    .cache_size = 256,
-    .lookahead_size = 256,
-    .block_cycles = 512,
+    .cache_size = 4096,
+    .lookahead_size = 4096,
+    //.block_cycles = 512,
+	.block_cycles = -1,
 };
 
 // Read a region in a block. Negative error codes are propagated to the user.
@@ -532,7 +533,7 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 #else
 int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 {
-	uint32_t flashID;
+	uint8_t flashID[3];
 	uint8_t statiticFileName[20];
 	uint8_t statiticData[1024];
 	uint32_t file_count = 0;
@@ -577,6 +578,12 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 		Error_Handler();
 	}
 
+	if(BSP_HSPI_NOR_ReadID(0, flashID) != BSP_ERROR_NONE)
+	{
+		Error_Handler();
+	}
+	printf("Statistic Flash MX66LM1G45G [0x%06x]\r\n", (flashID[0] << 16) | (flashID[1] << 8) | flashID[2]);
+
 	// mount the filesystem
 	err = lfs_mount(&lfs, &cfg);
 
@@ -613,13 +620,14 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 
 			printf("Wrote file %s\r\n", statiticFileName);
 
-			lfs_ls(&lfs, "/");
+			//lfs_ls(&lfs, "/");
 
 			doTest = 0;
 		}
 		else
 		{
 			printf("StatisticFlashTestTask idle\r\n");
+			lfs_ls(&lfs, "/");
 			//osDelay(2000);
 			HAL_Delay(2000);
 			doTest = 1;
