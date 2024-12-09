@@ -1,0 +1,9 @@
+*.d
+*.o
+*.launch
+*.bak
+.settings/
+Debug/
+Release/
+TouchGFX/build/
+
