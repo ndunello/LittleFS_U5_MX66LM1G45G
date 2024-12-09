@@ -32,6 +32,142 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+//#define TEST_HSPI_NOR_FLASH
+#if defined TEST_HSPI_NOR_FLASH
+#define TEST_HSPI_NOR_FLASH_HW 1
+#else
+#include "lfs.h"
+// variables used by the filesystem
+lfs_t lfs;
+lfs_file_t file;
+uint8_t doTest = 0;
+
+int user_provided_block_device_sync(const struct lfs_config *c);
+int user_provided_block_device_erase(const struct lfs_config *c, lfs_block_t block);
+int user_provided_block_device_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size);
+int user_provided_block_device_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size);
+
+// configuration of the filesystem is provided by this struct
+const struct lfs_config cfg = {
+    // block device operations
+    .read  = user_provided_block_device_read,
+    .prog  = user_provided_block_device_prog,
+    .erase = user_provided_block_device_erase,
+    .sync  = user_provided_block_device_sync,
+
+    // block device configuration
+    .read_size = 256,
+    .prog_size = 256,
+    .block_size = 4096,
+    .block_count = 32768,
+    .cache_size = 256,
+    .lookahead_size = 256,
+    .block_cycles = 512,
+};
+
+// Read a region in a block. Negative error codes are propagated to the user.
+int user_provided_block_device_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size)
+{
+	uint32_t readAddr;
+
+	readAddr = (c->block_size * block) + off;
+	//sFLASH_ReadBuffer(buffer, readAddr, size);
+	//printf("LSF READ: addr=%d, size=%d\n\r", readAddr, size);
+	if(BSP_HSPI_NOR_Read(0, buffer, readAddr, size) != BSP_ERROR_NONE)
+	{
+		printf("Read : Failed\r\n");
+	}
+	return 0;
+}
+
+// Program a region in a block. The block must have previously
+// been erased. Negative error codes are propagated to the user.
+// May return LFS_ERR_CORRUPT if the block should be considered bad.
+int user_provided_block_device_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size)
+{
+	uint32_t writeAddr;
+
+	writeAddr = (c->block_size * block) + off;
+	//sFLASH_WriteBuffer((uint8_t*)buffer, writeAddr, size);
+	//printf("LSF WRITE: addr=%d, size=%d\n\r", writeAddr, size);
+	if(BSP_HSPI_NOR_Write(0, (uint8_t*)buffer, writeAddr, size) != BSP_ERROR_NONE)
+	{
+		printf("Write : Failed\r\n");
+	}
+	return 0;
+}
+
+// Erase a block. A block must be erased before being programmed.
+// The state of an erased block is undefined. Negative error codes
+// are propagated to the user.
+// May return LFS_ERR_CORRUPT if the block should be considered bad.
+int user_provided_block_device_erase(const struct lfs_config *c, lfs_block_t block)
+{
+	uint32_t eraseAddr;
+
+	eraseAddr = (c->block_size * block);
+
+	//sFLASH_EraseSector(eraseAddr);
+	//printf("LSF ERASE: addr=%d\n\r", eraseAddr);
+	if(BSP_HSPI_NOR_Erase_Block(0, eraseAddr, MX66UW1G45G_ERASE_4K) != BSP_ERROR_NONE)
+	{
+		printf("Erase Sector 4K: Failed\r\n");
+	}
+	return 0;
+}
+
+
+// Sync the state of the underlying block device. Negative error codes
+// are propagated to the user.
+int user_provided_block_device_sync(const struct lfs_config *c)
+{
+	return 0;
+}
+
+int lfs_ls(lfs_t *lfs, const char *path) {
+    lfs_dir_t dir;
+    int err = lfs_dir_open(lfs, &dir, path);
+    if (err) {
+        return err;
+    }
+
+    struct lfs_info info;
+    while (true) {
+        int res = lfs_dir_read(lfs, &dir, &info);
+        if (res < 0) {
+            return res;
+        }
+
+        if (res == 0) {
+            break;
+        }
+
+        switch (info.type) {
+            case LFS_TYPE_REG: printf("reg "); break;
+            case LFS_TYPE_DIR: printf("dir "); break;
+            default:           printf("?   "); break;
+        }
+
+        static const char *prefixes[] = {"", "K", "M", "G"};
+        for (int i = sizeof(prefixes)/sizeof(prefixes[0])-1; i >= 0; i--) {
+            if (info.size >= (1 << 10*i)-1) {
+                printf("%*u%sB ", 4-(i != 0), info.size >> 10*i, prefixes[i]);
+                break;
+            }
+        }
+
+        printf("%s\r\n", info.name);
+    }
+
+    err = lfs_dir_close(lfs, &dir);
+    if (err) {
+        return err;
+    }
+
+    return 0;
+}
+#endif
+
 #define HSPI_NOR_BUFFER_SIZE     ((uint32_t)0x0200)
 #define HSPI_NOR_WRITE_READ_ADDR ((uint32_t)0x0050)
 #define HSPI_NOR_BASE_ADDR       ((uint32_t)0xA0000000)
@@ -55,6 +191,7 @@ BSP_HSPI_NOR_Init_t Hspi_NOR_Init;
 * @param  None
 * @retval None
 */
+#if defined TEST_HSPI_NOR_FLASH_HW
 int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 {
 	/* HSPI info structure */
@@ -392,6 +529,105 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 	printf("---------- TEST ENDED ----------\r\n");
 	return 0;
 }
+#else
+int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
+{
+	uint32_t flashID;
+	uint8_t statiticFileName[20];
+	uint8_t statiticData[1024];
+	uint32_t file_count = 0;
+	int32_t status;
+	int err;
+#if 0
+	/* 1 - Verify that the identifier is correctly read */
+	flashID = sFLASH_ReadID();
+
+	if(flashID != sFLASH_IS25LP032D_JDEC_ID)
+	{
+		printf("WARNING: Statistic Flash IS25LP032D wrong ID 0x%06x\r\n", (unsigned int)flashID);
+	}
+#endif
+
+	Hspi_NOR_Init.InterfaceMode = BSP_HSPI_NOR_SPI_MODE;
+	Hspi_NOR_Init.TransferRate  = BSP_HSPI_NOR_STR_TRANSFER;
+	if(BSP_HSPI_NOR_GetInfo(0,&Hspi_NOR_Info) != BSP_ERROR_NONE)
+	{
+		Error_Handler();
+	}
+	else if((Hspi_NOR_Info.FlashSize         != MX66UW1G45G_FLASH_SIZE)   ||
+		(Hspi_NOR_Info.EraseSectorSize       != MX66UW1G45G_BLOCK_64K)    ||
+		(Hspi_NOR_Info.EraseSectorsNumber    != (MX66UW1G45G_FLASH_SIZE / MX66UW1G45G_BLOCK_64K)) ||
+		(Hspi_NOR_Info.EraseSubSectorSize    != MX66UW1G45G_BLOCK_4K) ||
+		(Hspi_NOR_Info.EraseSubSectorNumber  != (MX66UW1G45G_FLASH_SIZE / MX66UW1G45G_BLOCK_4K))    ||
+		(Hspi_NOR_Info.EraseSubSector1Size   != MX66UW1G45G_BLOCK_4K)   ||
+		(Hspi_NOR_Info.EraseSubSector1Number != (MX66UW1G45G_FLASH_SIZE / MX66UW1G45G_BLOCK_4K)) ||
+		(Hspi_NOR_Info.ProgPageSize          != MX66UW1G45G_PAGE_SIZE) ||
+		(Hspi_NOR_Info.ProgPagesNumber       != (MX66UW1G45G_FLASH_SIZE / MX66UW1G45G_PAGE_SIZE)))
+	{
+		/* Test the correctness */
+		printf("GET INFO : FAILED\r\n");
+		printf("Test Aborted\r\n");
+		return(-1);
+	}
+
+	status = BSP_HSPI_NOR_Init(0, &Hspi_NOR_Init);
+	printf("--> BSP_HSPI_NOR_Init #1\r\n");
+	if (status != BSP_ERROR_NONE)
+	{
+		Error_Handler();
+	}
+
+	// mount the filesystem
+	err = lfs_mount(&lfs, &cfg);
+
+	// reformat if we can't mount the filesystem
+	// this should only happen on the first boot
+	if (err) {
+		printf("lfs mount error!\r\n");
+		lfs_format(&lfs, &cfg);
+		printf("lfs format!\r\n");
+		lfs_mount(&lfs, &cfg);
+		printf("lfs mount!\r\n");
+	}
+
+	for(;;)
+	{
+		if(doTest == 1)
+		{
+			printf("StatisticFlashTestTask write file\r\n");
+
+			lfs_file_open(&lfs, &file, "file_count", LFS_O_RDWR | LFS_O_CREAT);
+			lfs_file_read(&lfs, &file, &file_count, sizeof(file_count));
+			file_count++;
+			lfs_file_rewind(&lfs, &file);
+			lfs_file_write(&lfs, &file, &file_count, sizeof(file_count));
+			lfs_file_close(&lfs, &file);
+
+			sprintf(statiticFileName, "Statistic_%d", file_count);
+			lfs_file_open(&lfs, &file, statiticFileName, LFS_O_RDWR | LFS_O_CREAT);
+			lfs_file_read(&lfs, &file, &statiticData, sizeof(statiticData));
+			memset(statiticData, file_count, sizeof(statiticData));
+			lfs_file_rewind(&lfs, &file);
+			lfs_file_write(&lfs, &file, &statiticData, sizeof(statiticData));
+			lfs_file_close(&lfs, &file);
+
+			printf("Wrote file %s\r\n", statiticFileName);
+
+			lfs_ls(&lfs, "/");
+
+			doTest = 0;
+		}
+		else
+		{
+			printf("StatisticFlashTestTask idle\r\n");
+			//osDelay(2000);
+			HAL_Delay(2000);
+			doTest = 1;
+
+		}
+	}
+}
+#endif
 
 
 /**
@@ -456,6 +692,18 @@ static uint8_t DataCmp(uint8_t* pBuffer, uint8_t Pattern, uint32_t BufferLength)
   }
 
   return 0;
+}
+
+/**
+* @brief  Compares two buffers.
+* @param  pBuffer1, pBuffer2: buffers to be compared.
+* @param  BufferLength: buffer's length
+* @retval 1: pBuffer identical to pBuffer1
+*         0: pBuffer differs from pBuffer1
+*/
+void littlefs(void)
+{
+
 }
 /**
 * @}
