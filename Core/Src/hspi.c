@@ -38,7 +38,7 @@ void MX_HSPI1_Init(void)
 
   /* USER CODE END HSPI1_Init 1 */
   hxspi1.Instance = HSPI1;
-  hxspi1.Init.FifoThresholdByte = 4;
+  hxspi1.Init.FifoThresholdByte = 1;
   hxspi1.Init.MemoryMode = HAL_XSPI_SINGLE_MEM;
   hxspi1.Init.MemoryType = HAL_XSPI_MEMTYPE_MACRONIX;
   hxspi1.Init.MemorySize = HAL_XSPI_SIZE_1GB;

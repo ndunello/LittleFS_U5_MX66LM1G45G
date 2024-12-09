@@ -65,7 +65,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32u5g9j_discovery_hspi.h"
-
+#if defined ALO_INIT_STUB
+#define ALO_STUB	1
+#include "stdio.h"
+#endif
 /** @addtogroup BSP
   * @{
   */
@@ -279,6 +282,7 @@ int32_t BSP_HSPI_NOR_DeInit(uint32_t Instance)
   */
 __weak HAL_StatusTypeDef MX_HSPI_NOR_Init(XSPI_HandleTypeDef *hhspi, MX_HSPI_InitTypeDef *Init)
 {
+#ifndef ALO_STUB
   /* HSPI initialization */
   hhspi->Instance = HSPI1;
 
@@ -305,6 +309,10 @@ __weak HAL_StatusTypeDef MX_HSPI_NOR_Init(XSPI_HandleTypeDef *hhspi, MX_HSPI_Ini
     hhspi->Init.DelayHoldQuarterCycle = HAL_XSPI_DHQC_DISABLE;
   }
   return HAL_XSPI_Init(hhspi);
+#else
+  printf("MX_HSPI_NOR_Init STUBBED !!!\r\n");
+  return HAL_OK;
+#endif
 }
 /**
   * @}
@@ -322,7 +330,7 @@ __weak HAL_StatusTypeDef MX_HSPI_NOR_Init(XSPI_HandleTypeDef *hhspi, MX_HSPI_Ini
   */
 __weak HAL_StatusTypeDef MX_HSPI_ClockConfig(XSPI_HandleTypeDef *hhspi)
 {
-
+#ifndef ALO_STUB
   RCC_PeriphCLKInitTypeDef  PLL2InitPeriph = {0};
 
   /* hhspi unused argument(s) compilation warning */
@@ -345,6 +353,10 @@ __weak HAL_StatusTypeDef MX_HSPI_ClockConfig(XSPI_HandleTypeDef *hhspi)
   PLL2InitPeriph.PLL2.PLL2ClockOut = RCC_PLL2_DIVQ;
   PLL2InitPeriph.PLL2.PLL2Source = RCC_PLLSOURCE_HSE;
   return HAL_RCCEx_PeriphCLKConfig(&PLL2InitPeriph);
+#else
+  printf("MX_HSPI_ClockConfig STUBBED !!!\r\n");
+  return HAL_OK;
+#endif
 }
 /**
   * @}
@@ -1086,6 +1098,7 @@ int32_t BSP_HSPI_NOR_LeaveDeepPowerDown(uint32_t Instance)
   */
 static void HSPI_NOR_MspInit(XSPI_HandleTypeDef *hhspi)
 {
+#ifndef ALO_STUB
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* hhspi unused argument(s) compilation warning */
@@ -1169,6 +1182,9 @@ static void HSPI_NOR_MspInit(XSPI_HandleTypeDef *hhspi)
   GPIO_InitStruct.Pin       = HSPI_NOR_D7_PIN;
   GPIO_InitStruct.Alternate = HSPI_NOR_D7_PIN_AF;
   HAL_GPIO_Init(HSPI_NOR_D7_GPIO_PORT, &GPIO_InitStruct);
+#else
+  printf("HSPI_NOR_MspInit STUBBED !!!\r\n");
+#endif
 }
 
 /**
@@ -1178,6 +1194,7 @@ static void HSPI_NOR_MspInit(XSPI_HandleTypeDef *hhspi)
   */
 static void HSPI_NOR_MspDeInit(XSPI_HandleTypeDef *hhspi)
 {
+#ifndef ALO_STUB
   /* hhspi unused argument(s) compilation warning */
   UNUSED(hhspi);
 
@@ -1200,6 +1217,9 @@ static void HSPI_NOR_MspDeInit(XSPI_HandleTypeDef *hhspi)
 
   /* Disable the HSPI memory interface clock */
   HSPI_NOR_CLK_DISABLE();
+#else
+  printf("HSPI_NOR_MspDeInit STUBBED !!!\r\n");
+#endif
 }
 
 /**

@@ -66,7 +66,8 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 	/* Demo Hint */
 	printf("---------- TEST STARTED ----------\r\n");
 
-	for (mode = 0; mode < 3; mode++)
+	//for (mode = 0; mode < 3; mode++)
+	for (mode = 0; mode < 1; mode++)
 	{
 		/********************************** PART 1 **********************************/
 
@@ -117,6 +118,7 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 		}
 
 		status = BSP_HSPI_NOR_Init(0, &Hspi_NOR_Init);
+		printf("--> BSP_HSPI_NOR_Init #1\r\n");
 		if (status != BSP_ERROR_NONE)
 		{
 			Error_Handler();
@@ -214,7 +216,7 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 
 		/*##-1- Deconfigure the HSPI NOR device ####################################*/
 		status = BSP_HSPI_NOR_DeInit(0);
-
+		printf("--> BSP_HSPI_NOR_DeInit #1\r\n");
 		if (status != BSP_ERROR_NONE)
 		{
 			Error_Handler();
@@ -224,7 +226,7 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 			/*##-2- Reconfigure the HSPI NOR device ##################################*/
 			/* QSPI device configuration */
 			status = BSP_HSPI_NOR_Init(0, &Hspi_NOR_Init);
-
+			printf("--> BSP_HSPI_NOR_Init #2\r\n");
 			if (status != BSP_ERROR_NONE)
 			{
 				Error_Handler();
@@ -311,6 +313,7 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 
 		/*##-1- Deconfigure the HSPI NOR device ####################################*/
 		status = BSP_HSPI_NOR_DeInit(0);
+		printf("--> BSP_HSPI_NOR_DeInit #2\r\n");
 		if (status != BSP_ERROR_NONE)
 		{
 		  Error_Handler();
@@ -320,7 +323,7 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 			/*##-2- Reconfigure the HSPI NOR device ##################################*/
 			/* HSPI NOR device configuration */
 			status = BSP_HSPI_NOR_Init(0, &Hspi_NOR_Init);
-
+			printf("--> BSP_HSPI_NOR_Init #3\r\n");
 			if (status != BSP_ERROR_NONE)
 			{
 				Error_Handler();
@@ -384,6 +387,7 @@ int32_t littlefs_test(MX66UW1G45G_TestMode_t mymode)
 		}
 		/* De-initialization in order to have correct configuration memory on next try */
 		BSP_HSPI_NOR_DeInit(0);
+		printf("--> BSP_HSPI_NOR_DeInit #3\r\n");
 	}
 	printf("---------- TEST ENDED ----------\r\n");
 	return 0;
